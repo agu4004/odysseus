@@ -1,6 +1,6 @@
 # SECOND BRAIN — SOFTWARE DESIGN DOCUMENT
 
-> **Version:** 1.1 | **Date:** 2026-06-12 | **Author:** Mình Bình Thường
+> **Version:** 1.2 | **Date:** 2026-06-12 | **Author:** Mình Bình Thường
 >
 > **Scope:** Thiết kế kiến trúc, data model, API và pattern tích hợp cho **Second Brain** — backend tri thức + planner phục vụ Odysseus. Đây là tài liệu kỹ thuật, đồng bộ với [roadmap_assistance.md](roadmap_assistance.md) (đọc bảng "Quyết định đã chốt" trước khi sửa thiết kế).
 >
@@ -33,7 +33,7 @@ Second Brain **không phải** một AI workspace độc lập. Nó là **bộ n
 | Embedding bge-m3 local (multilingual, tiếng Việt) | Agent orchestration riêng (agent loop là của Odysseus) |
 | MCP server (Streamable HTTP) expose tool cho Odysseus | Kafka, Redis, MinIO, API Gateway, gRPC |
 | REST `composeContext` cho `SecondBrainMemoryProvider` | Kubernetes, RDS, S3, multi-user, JWT |
-| **Planner**: plan/plan_item, conflict check, reflow, CalDAV export | GraphRAG, multi-agent, analytics |
+| **Planner**: plan/plan_item, conflict check, reflow, export qua `CalendarExporter` (REST API Odysseus) | GraphRAG, multi-agent, analytics |
 | **Telegram gateway**: chat từ xa qua Bot API long-polling | Facebook Messenger (xem 6.1 — rủi ro ToS/ban) |
 | Obsidian vault export/watch (tầng curate) | |
 | Nhắc lịch qua ntfy (push trực tiếp từ Java) | |
@@ -51,7 +51,7 @@ Second Brain **không phải** một AI workspace độc lập. Nó là **bộ n
         ┌──────────┐  ┌──────────┐         ┌─────────────────────────────────────────┐
         │ Telegram  │  │ ntfy app │         │  ODYSSEUS (Python — fork, giữ nguyên)   │
         └─────┬─────┘  └────▲─────┘         │  • Chat UI / Agent loop / Email / Notes │
-              │ long-poll   │ push          │  • Calendar UI (CalDAV)                 │
+              │ long-poll   │ push          │  • Calendar UI (local-first)             │
               │ (không cần  │               │  • SecondBrainMemoryProvider (file mới) │
               │  mở port)   │               │  • POST /v1/chat (API token — có sẵn)   │
               ▼             │               └───────┬─────────────────▲───────────────┘
@@ -65,7 +65,7 @@ Second Brain **không phải** một AI workspace độc lập. Nó là **bộ n
 │  └─────────┘ └──────────┘ └──────────┘ │
 │  ┌─────────┐ ┌──────────┐ ┌──────────┐ │
 │  │ planner │ │   mcp    │ │   api    │ │──── push ntfy (nhắc lịch, đề xuất reflow)
-│  │plan/item│ │tool defs │ │compose-  │ │──── CalDAV export (lịch hiện trong Odysseus)
+│  │plan/item│ │tool defs │ │compose-  │ │──── Calendar REST API export (Odysseus bearer)
 │  │ reflow  │ │          │ │Context   │ │──── Obsidian vault export/watch
 │  └─────────┘ └──────────┘ └──────────┘ │
 └────────────────────┬────────────────────┘
@@ -80,7 +80,7 @@ Second Brain **không phải** một AI workspace độc lập. Nó là **bộ n
 | `knowledge` | CRUD facts (Graphiti-style) + documents/chunks; trạng thái curation |
 | `retrieval` | Embedding (bge-m3), semantic + hybrid search, threshold, token budget |
 | `ingestion` | Upload, Tika/jsoup extract, chunking, async index (Spring `@Async` + bảng job, KHÔNG Kafka) |
-| `planner` | Plan/PlanItem, conflict check, reflow engine, CalDAV export, reminder qua ntfy |
+| `planner` | Plan/PlanItem, conflict check, reflow engine, export qua `CalendarExporter` (REST API Odysseus), reminder qua ntfy |
 | `mcp` | MCP server (spring-ai-starter-mcp-server-webmvc, Streamable HTTP) — mặt tiền cho agent Odysseus |
 | `api` | REST cho `composeContext` + nội bộ (eval runner, health) |
 | `gateway` | Telegram bridge: long-poll Bot API ⇄ gọi Odysseus `POST /v1/chat` |
@@ -92,7 +92,7 @@ Second Brain **không phải** một AI workspace độc lập. Nó là **bộ n
 |---|---|---|
 | MCP tools (Streamable HTTP, localhost/Docker network) | Odysseus → SB | Thao tác **chủ động** của agent: addFact, proposePlan, markDone... |
 | REST `composeContext` | Odysseus → SB | Thao tác **thụ động** mỗi message: `SecondBrainMemoryProvider.recall()` tự gọi — đây là lý do LLM "luôn biết lịch" |
-| CalDAV (ghi vào Radicale) | SB → Odysseus | Plan item hiện trên Calendar UI của Odysseus + điện thoại |
+| Odysseus Calendar REST API (Bearer token, sau interface `CalendarExporter`) | SB → Odysseus | Plan item hiện trên Calendar UI của Odysseus |
 | ntfy (HTTP POST) | SB → user | Nhắc lịch, đề xuất reflow, fact chờ duyệt |
 | `POST /v1/chat` (API token) | gateway → Odysseus | Telegram bridge chuyển tin nhắn vào pipeline chat đầy đủ (đã xác minh endpoint tồn tại — `routes/webhook_routes.py:234`) |
 
@@ -176,7 +176,7 @@ CREATE TABLE plan_items (
     status VARCHAR(20) DEFAULT 'todo',           -- todo/done/missed/skipped
     done_at TIMESTAMPTZ,
     depends_on UUID REFERENCES plan_items(id),   -- ràng buộc thứ tự khi reflow
-    caldav_uid VARCHAR(255),                     -- map sang event CalDAV đã export
+    odysseus_event_id VARCHAR(255),              -- map sang event đã export vào Odysseus calendar REST API
     remind_lead_minutes INT DEFAULT 30,
     notes TEXT
 );
@@ -202,9 +202,9 @@ CREATE TABLE plan_items (
 | `addFact(content, labels, source)` | Thêm fact → trạng thái `pending` | Không bao giờ ghi thẳng approved |
 | `getRecentNotes()` | Fact/note mới gần đây | |
 | `proposePlan(goal, constraints, deadline)` | AI thiết kế chương trình → plan `draft` + items | Trả bản kế hoạch để user duyệt ngay trong chat |
-| `activatePlan(planId)` | Duyệt plan → `active`, export CalDAV, đặt reminder | Chỉ chạy sau khi user đồng ý |
+| `activatePlan(planId)` | Duyệt plan → `active`, ghi Odysseus Calendar qua REST API, đặt reminder | Chỉ chạy sau khi user đồng ý |
 | `getAgenda(rangeDays)` | Lịch + plan item sắp tới & overdue | Cũng được nhúng tự động qua composeContext |
-| `checkConflict(start, end)` | Kiểm tra trùng giờ với plan item + (tùy chọn) CalDAV event | Trả danh sách conflict cụ thể |
+| `checkConflict(start, end)` | Kiểm tra trùng giờ với plan item + (tùy chọn) Odysseus Calendar event | Trả danh sách conflict cụ thể |
 | `updatePlanItem(itemId, {status\|newStart\|newEnd})` | Tick checkbox done / dời giờ | |
 | `reflowPlan(planId, strategy)` | Dãn/dồn lại các item chưa xong | `strategy`: shift-all / compress / drop-optional; trả diff trước-sau để user duyệt |
 
@@ -226,7 +226,7 @@ Bảo mật: bind localhost/mạng Docker nội bộ; một API key tĩnh trong 
 
 ### 5.1 Nguyên tắc
 
-- **Source of truth là Postgres của Second Brain** (không phải CalDAV). CalDAV chỉ là "màn hình chiếu" để lịch hiện trên Odysseus UI + điện thoại.
+- **Source of truth là Postgres của Second Brain** (không phải Odysseus calendar). Calendar UI Odysseus là "màn hình chiếu" — Second Brain ghi vào qua REST API sau interface `CalendarExporter`; nếu tương lai cần đa thiết bị thì thêm `CaldavExporter` mà không sửa logic planner.
 - LLM **không bao giờ phải hỏi lại lịch**: agenda digest được nhúng vào mọi message qua `composeContext` (kênh thụ động, không phụ thuộc agent nhớ gọi tool).
 - Mọi thay đổi lịch do AI đề xuất đều ở dạng **diff chờ duyệt** — user xác nhận trong chat (hoặc Telegram) rồi mới ghi.
 
@@ -238,7 +238,7 @@ User (chat): "thiết kế cho tôi lịch ôn thi AI trong 3 tuần, tối 2-4-
   → Second Brain sinh plan draft: N items có scheduled_start/end, tránh conflict sẵn có
   → agent trình bày bảng kế hoạch trong chat
 User: "ok" → agent gọi activatePlan(planId)
-  → export các item sang CalDAV (calendar riêng tên "Second Brain")
+  → ghi các item vào Odysseus Calendar qua REST API (Bearer token, interface CalendarExporter)
   → đặt reminder ntfy theo remind_lead_minutes
 ```
 
@@ -264,7 +264,7 @@ User: "tối thứ 6 này đi ăn với team nhé, nhớ giữ chỗ"
   → LLM nêu conflict NGAY trong câu trả lời + đề xuất phương án
      (dời buổi ôn sang sáng thứ 7 / nén vào tối thứ 5)
   → User chọn → agent gọi updatePlanItem / reflowPlan
-  → Second Brain cập nhật DB + đồng bộ CalDAV + reset reminder
+  → Second Brain cập nhật DB + đồng bộ Odysseus Calendar (REST API) + reset reminder
 ```
 
 Chốt chặn 2 lớp: lớp mềm là LLM đối chiếu digest; lớp cứng là `checkConflict`/`addPlanItem` luôn trả danh sách conflict trong response — kể cả khi LLM "quên" nhìn digest, tool result sẽ ép nó xử lý.
@@ -273,7 +273,7 @@ Chốt chặn 2 lớp: lớp mềm là LLM đối chiếu digest; lớp cứng l
 
 - **Tick done từ 3 nơi**: chat ("xong buổi ôn hôm nay rồi" → `updatePlanItem`), Telegram (lệnh `/done`), hoặc Obsidian (plan export ra vault dạng `- [ ]` checklist; watcher đọc ngược tick vào DB).
 - **Nightly job** (Spring `@Scheduled`, 21:30): quét item `missed` → tính độ lệch tiến độ → nếu lệch, sinh **đề xuất reflow** (diff trước-sau) → push ntfy + Telegram: *"Bạn trễ 2 buổi. Đề xuất: dãn deadline 4 ngày HOẶC nén còn 10 buổi. Trả lời 1/2/giữ nguyên."*
-- User trả lời qua Telegram/chat → `reflowPlan(strategy)` → cập nhật DB + CalDAV + reminder. Item bị dời giữ nguyên `depends_on` (không bao giờ xếp bài chương 4 trước chương 3).
+- User trả lời qua Telegram/chat → `reflowPlan(strategy)` → cập nhật DB + Odysseus Calendar (REST API) + reminder. Item bị dời giữ nguyên `depends_on` (không bao giờ xếp bài chương 4 trước chương 3).
 
 ### 5.6 Reminder
 
@@ -359,7 +359,7 @@ Tiền đề: **Giai đoạn 0-1 của roadmap_assistance.md đi trước** (bra
 | **A** | Spring Boot 3.x + Java 21, Postgres+pgvector vào compose, Flyway, Testcontainers. Schema `facts` + `plans`/`plan_items`. Embedding bge-m3 local | GĐ 2 |
 | **B** | MCP server Streamable HTTP: `searchKnowledge`/`addFact`/`getRecentNotes` (description song ngữ); đăng ký vào Odysseus; **bộ eval 30-50 câu chạy bằng lệnh** | GĐ 2 |
 | **C** | `composeContext` + agenda digest; file `src/second_brain_provider.py` phía Odysseus (~100 dòng) + 1 dòng đăng ký registry. Đo baseline eval | GĐ 2→4 |
-| **D** | **Planner đầy đủ**: proposePlan/activatePlan/checkConflict/updatePlanItem/reflowPlan, CalDAV export, reminder ntfy, nightly reflow job | GĐ 2b (mới) |
+| **D** | **Planner đầy đủ**: proposePlan/activatePlan/checkConflict/updatePlanItem/reflowPlan, export qua `CalendarExporter` (REST API Odysseus), reminder ntfy, nightly reflow job | GĐ 2b (mới) |
 | **E** | **Telegram gateway**: long-poll, allowlist, `/agenda` `/done` `/brief`, nối `POST /v1/chat` | GĐ 2b (mới) |
 | **F** | Document ingestion: upload + Tika/jsoup + chunking + hybrid search (FTS `'simple'`+unaccent) | GĐ 2 mở rộng |
 | **G** | Obsidian export/watch 2 chiều (fact + plan checklist); song song thử Mem0 OSS (deadline 2 tuần) | GĐ 3 |
@@ -399,5 +399,6 @@ Tiền đề: **Giai đoạn 0-1 của roadmap_assistance.md đi trước** (bra
 |------|---------|--------|--------|
 | 2026-06-12 | 1.0 | Initial design document | Mình Bình Thường |
 | 2026-06-12 | 1.1 | Định vị lại làm backend cho Odysseus; modular monolith; bge-m3; schema facts; MCP server + composeContext; **thêm Planner + Telegram gateway**; chuyển chat UI/React/Kafka/K8s xuống backlog | Claude (duyệt bởi chủ project) |
+| 2026-06-12 | 1.2 | **Bỏ CalDAV/Radicale**: calendar Odysseus local-first, 1 máy, không cần sync đa thiết bị. Planner export qua `CalendarExporter` (REST API Odysseus bearer token); `caldav_uid` → `odysseus_event_id`; mọi tham chiếu CalDAV trong §2/§3/§4/§5/§8 đã cập nhật. Nếu sau này cần đa thiết bị → thêm `CaldavExporter` implement interface, không sửa planner. | Claude (duyệt bởi chủ project) |
 
 > *Tài liệu sống — cập nhật khi quyết định kiến trúc đổi, đồng bộ với bảng "Quyết định đã chốt" trong roadmap_assistance.md.*

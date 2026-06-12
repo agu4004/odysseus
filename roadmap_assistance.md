@@ -36,7 +36,7 @@
 - [ ] Dựng Odysseus bằng Docker Compose (Odysseus + ChromaDB + SearXNG + ntfy)
   - Lưu ý: máy dev là **Windows** — Cookbook cần `tmux` nên Docker gần như bắt buộc thay vì chạy native
 - [ ] Kết nối model: Ollama trên RTX 3070 Ti (model 7-8B quantized) hoặc OpenRouter làm dự phòng; thử Cookbook để scan phần cứng
-- [ ] Cấu hình CalDAV (Radicale self-host hoặc Google Calendar) và ntfy lên điện thoại
+- [ ] Cấu hình ntfy: gửi test notification từ PC, xác nhận service hoạt động
 - [ ] Dùng thử chế độ Personal Assistant + scheduled check-in sẵn có ít nhất 3-4 ngày, **ghi lại danh sách gap thực tế** (đừng đoán gap)
 - [ ] (Tùy chọn) Chạy Graphify trên repo Odysseus làm knowledge graph cho Claude Code — chỉ là dev tool, không liên quan kho tri thức
 
@@ -78,7 +78,7 @@
 
 - [ ] **Planner module** (Java): bảng `plans`/`plan_items`, MCP tools `proposePlan`/`activatePlan`/`getAgenda`/`checkConflict`/`updatePlanItem`/`reflowPlan`
 - [ ] **Agenda digest trong composeContext** — LLM luôn biết lịch hiện tại mỗi message, không hỏi lại; conflict được nêu và thảo luận ngay trong chat
-- [ ] **CalDAV export**: plan item ghi vào calendar riêng "Second Brain" trên Radicale → hiện trong Calendar UI Odysseus + điện thoại
+- [ ] **Calendar export**: plan item ghi vào Odysseus Calendar qua REST API (Bearer token) sau interface `CalendarExporter` → hiện trong Calendar UI Odysseus
 - [ ] **Checkbox done 3 đường**: chat (`updatePlanItem`), Telegram (`/done`), Obsidian checklist (watcher đọc ngược)
 - [ ] **Nightly reflow job**: quét item missed → đề xuất dãn/nén chương trình (diff trước-sau) → push ntfy/Telegram, user duyệt mới ghi
 - [ ] **Telegram gateway** (Java, long-polling — không cần mở port khi host ở nhà): allowlist chat_id, lệnh nhanh `/agenda` `/done` `/brief`, tin thường đi qua `POST /v1/chat` của Odysseus (pipeline đầy đủ: context, tools, memory)
@@ -136,7 +136,8 @@ Xây tăng dần, mỗi bước đo bằng bộ eval:
 | Định tuyến memory | Persona prompt: fact dài hạn → `addFact` (pending); ngữ cảnh phiên → `manage_memory` nội bộ | `manage_memory` là ALWAYS_AVAILABLE, agent sẽ mặc định dùng nếu không hướng dẫn |
 | Kiến trúc Second Brain | Modular monolith (1 Spring Boot app, module by package), KHÔNG microservices/Kafka/K8s ở MVP | Hệ 1 user 1 máy; chi phí microservices nằm ở vận hành, nuốt quỹ thời gian không tạo giá trị tri thức |
 | Embedding | bge-m3 local (1024 chiều), KHÔNG text-embedding-3-small | Multilingual cho tiếng Việt, không tốn API, dữ liệu tại chỗ |
-| Planner | Source of truth = Postgres Second Brain; CalDAV chỉ là "màn hình chiếu"; LLM biết lịch qua agenda digest trong composeContext; mọi thay đổi lịch = diff chờ duyệt | Không hỏi lại lịch; conflict 2 lớp (digest mềm + checkConflict cứng); xem plan.md §5 |
+| Planner | Source of truth = Postgres Second Brain; Calendar UI Odysseus là "màn hình chiếu" (ghi qua REST API sau `CalendarExporter`); LLM biết lịch qua agenda digest trong composeContext; mọi thay đổi lịch = diff chờ duyệt | Không hỏi lại lịch; conflict 2 lớp (digest mềm + checkConflict cứng); xem plan.md §5 |
+| Lịch đa thiết bị / CalDAV | **BỎ** — không dựng CalDAV server (cả Radicale lẫn custom) | 1 user 1 máy; calendar Odysseus local-first đủ dùng; planner export qua REST API Odysseus; nếu sau này cần đa thiết bị → thêm `CaldavExporter` implement interface `CalendarExporter`, không sửa logic planner |
 | Kênh chat từ xa | Telegram Bot API long-polling, KHÔNG Facebook | FB vi phạm ToS với acc cá nhân + đòi public webhook; Telegram long-poll không cần mở port khi host ở nhà. Bridge gọi `POST /v1/chat` (đã xác minh có sẵn) |
 | Truy cập full UI từ xa | Tailscale (backlog), không expose public internet | Long-poll + ntfy đều là kết nối chiều ra, không mở port nào |
 
