@@ -35,7 +35,7 @@
 
 | Phase | Tên | Trạng thái | Tiến độ | Cập nhật |
 |---|---|---|---|---|
-| P0 | Nền tảng Odysseus | 🔄 | 3/6 ✅ + T0.3/T0.4/T0.5 chờ user | 2026-06-12 |
+| P0 | Nền tảng Odysseus | 🔄 | 3/6 ✅; T0.3/T0.4/T0.5 🔄 chờ user | 2026-06-12 |
 | P1 | Trợ lý Việt hóa | ⬜ | 0/4 | — |
 | P2 | Second Brain core (Sprint A-C) | ⬜ | 0/12 | — |
 | P2b | Planner + Telegram (Sprint D-E) | ⬜ | 0/9 | — |
@@ -57,8 +57,8 @@
 | T0.0 | Thêm remote upstream | `upstream` = pewdiepie-archdaemon | `git remote -v` có upstream | ✅ |
 | T0.1 | Tạo branch `my-features` từ `dev` | Mọi thay đổi riêng từ nay nằm trên branch này; commit 3 file .md hiện có vào đây | `git branch --show-current` → `my-features`; `git status` sạch | ✅ |
 | T0.2 | Dựng Docker Compose full stack | `odysseus` + `searxng` + `ntfy` chạy; login được, đổi mật khẩu admin | `docker compose ps` — mọi service healthy; mở `http://localhost:7000` login OK | ✅ |
-| T0.3 | Kết nối model | Ollama (RTX 3070 Ti, model 7-8B quantized) HOẶC OpenRouter; chat trả lời được tiếng Việt | Gửi 1 câu chat trong UI → có phản hồi < 30s | ⏭️ test sau — LM Studio cần bật 0.0.0.0:1234 |
-| T0.4 | CalDAV + ntfy | Radicale (hoặc Google Cal) sync 2 chiều; ntfy app trên điện thoại nhận push | Tạo event trong Odysseus → hiện trên điện thoại; gửi test notification → điện thoại nhận | 🔄 CalDAV server ✅; cần user kết nối trong UI + ntfy phone test sau |
+| T0.3 | Kết nối model | Ollama (RTX 3070 Ti, model 7-8B quantized) HOẶC OpenRouter; chat trả lời được tiếng Việt | Gửi 1 câu chat trong UI → có phản hồi < 30s | 🔄 chờ user — bật LM Studio 0.0.0.0:1234 rồi test chat |
+| T0.4 | ntfy notification hoạt động | ntfy service chạy; gửi được test notification từ Odysseus; nhận trên PC (web UI hoặc browser push) | `curl -d "test" http://localhost:8091/odysseus` → GET poll trả message; mở http://localhost:8091 trên trình duyệt nhận được | ✅ |
 | T0.5 | Dùng thật 3-4 ngày, ghi gap list | Bật Personal Assistant + ≥1 scheduled check-in; ghi gap vào `gap_log.md` (file mới) | `gap_log.md` tồn tại, ≥ 5 gap có mô tả cụ thể (không đoán) | 🔄 gap_log.md tạo xong; "Morning check-in" 7h daily seeded; chờ 3-4 ngày dùng thật |
 
 **Exit criteria P0:**
@@ -143,7 +143,7 @@
 | T3.2 | Agenda digest trong composeContext | Digest ≤ 400 token: hôm nay + quá hạn + 7 ngày + tiến độ plan active; tz `Asia/Ho_Chi_Minh` | Test 3 kịch bản chat nhắc giờ → LLM trả lời có đối chiếu lịch mà KHÔNG hỏi lại lịch | ⬜ |
 | T3.3 | Conflict 2 lớp | `checkConflict` + `addPlanItem`/`activatePlan` luôn trả conflicts trong response | Bộ 10 kịch bản conflict (trùng hoàn toàn, chờm 15', khác ngày, xuyên đêm...) → phát hiện **10/10** | ⬜ |
 | T3.4 | Reflow engine | `reflowPlan(strategy)`: shift-all / compress / drop-optional; trả diff trước-sau; tôn trọng `depends_on` | Test: plan 12 item trễ 2 → reflow không bao giờ xếp item sau trước item trước (0 vi phạm topo) | ⬜ |
-| T3.5 | CalDAV export + reminder ntfy | Item của plan active → calendar "Second Brain" trên Radicale; nhắc trước `remind_lead_minutes`; nightly job 21:30 quét missed → đề xuất reflow qua ntfy | Event hiện trong Calendar UI Odysseus + điện thoại; reminder đến ±1 phút; giả lập item missed → 21:30 nhận đề xuất | ⬜ |
+| T3.5 | Calendar export + reminder ntfy | Item của plan active → Odysseus calendar REST API (Bearer token) qua interface `CalendarExporter`; nhắc trước `remind_lead_minutes` qua ntfy; nightly job 21:30 quét missed → đề xuất reflow qua ntfy | Event hiện trong Calendar UI Odysseus; reminder ntfy đến ±1 phút; giả lập item missed → 21:30 nhận đề xuất | ⬜ |
 
 ### Sprint E — Telegram gateway
 
@@ -217,6 +217,9 @@ Chỉ mở khi P0-P4 chạy mượt và có nhu cầu thật: "giao todo cho age
 
 | Ngày | Task | Kết quả | Metric đo được | Ghi chú |
 |---|---|---|---|---|
+| 2026-06-12 | T0.4 | ✅ PASS ntfy | curl POST → poll GET: message id=1YeuDGbrFpGY nhận đúng title+body | ntfy web UI tại http://localhost:8091/odysseus |
+| 2026-06-12 | T0.4 refactor | ✅ decommission CalDAV | 4 service up (no caldav); login OK; GET /api/calendar/calendars → Personal calendar local ✅ | CalDAV dropped per decision: 1 máy local-first; T0.4 đổi thành ntfy test; T3.5 đổi sang CalendarExporter REST API |
+| 2026-06-12 | audit | Review session: report khớp thực tế (branch, 7 commit, 5 service, gap_log) | server.py = **323 dòng** (report nói ~230) — chạm ngưỡng báo động §0.3 | ⚠️ CalDAV tự viết = deviation chưa duyệt (quyết định chốt là Radicale); thiếu RFC 6578 sync-token + RRULE expansion → rủi ro verify T0.4 (điện thoại) và móng P2b. **Chờ user quyết: giữ hay swap Radicale** |
 | 2026-06-12 | T0.5 | 🔄 setup xong | gap_log.md tạo; Morning check-in 7h daily tạo qua API (id: eb6adaa0) | Chờ 3-4 ngày dùng thật để điền ≥5 gap |
 | 2026-06-12 | T0.4 | 🔄 CalDAV server built & verified | PUT+REPORT+discovery chain pass; 5 services up | Tự viết RFC 4791 subset (~230 dòng Starlette); ntfy phone ⏭️ test sau |
 | 2026-06-12 | T0.2 | ✅ PASS | docker compose ps: 4 service up (odysseus, searxng healthy, ntfy, chromadb); HTTP 302 login redirect tại :7000 | LM Studio chưa bật → 0 model, bình thường; FastEmbed WARNING do FASTEMBED_CACHE_PATH rỗng |
