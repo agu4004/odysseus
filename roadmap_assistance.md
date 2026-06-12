@@ -42,6 +42,7 @@
 
 - [ ] **Daily briefing**: scheduled task 7h sáng tổng hợp lịch hôm nay + todo đến hạn + email qua đêm, đẩy qua ntfy. Chủ yếu là prompt template + preset task, tận dụng `manage_calendar`/`manage_notes`/email tools sẵn có
 - [ ] **Tiếng Việt hóa lớp ngôn ngữ** (sâu hơn "chỉ prompt" — xem bảng xác minh ở đầu file):
+  - [ ] **Intent classifier cho agent** (gap G-02 2026-06-12, ưu tiên cao nhất): `_classify_agent_request` trong `src/agent_loop.py:748` chỉ có regex tiếng Anh → câu Việt bị coi low-signal, retrieval bị bỏ qua, agent chỉ còn 3 tool mặc định. Vá: helper file pattern Việt + ≤15 dòng tại điểm gọi; **ứng viên PR ngược upstream** (ảnh hưởng mọi user non-English)
   - [ ] Prompt tiếng Việt cho `/quick-parse` và `/parse` (reminder, sự kiện)
   - [ ] File helper mới `src/vietnamese_dates.py` xử lý cụm thời gian Việt ("mốt", "tuần sau", "7h tối thứ 6") + vá nhỏ điểm gọi `parse_due_for_user` trong `routes/calendar_routes.py` (fallback `dateutil` không hiểu tiếng Việt)
   - [ ] Timezone Asia/Ho_Chi_Minh nhất quán toàn hệ thống (scheduler đã hỗ trợ IANA tz per-task sẵn)

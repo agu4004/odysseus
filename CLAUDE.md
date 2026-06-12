@@ -30,13 +30,19 @@ Odysseus — AI workspace tự host (FastAPI + vanilla JS): chat đa model, agen
 ## Lệnh thường dùng
 
 ```bash
-# Chạy app native trên Windows: hỗ trợ chính thức qua core/platform_compat.py + launch-windows.ps1;
-# Cookbook đầy đủ cần Git for Windows (bash.exe); vLLM/SGLang serve cần WSL2. Docker = đường ít rủi ro hơn.
-python -m uvicorn app:app --host 127.0.0.1 --port 7000
-
-# Docker
+# Máy dev CHẠY ĐƯỢC Docker — Docker là môi trường chính
 docker compose up -d --build
 docker compose logs --tail=120 odysseus
+
+# Dự phòng không-Docker (chính thức, dùng khi Docker trục trặc): cần Python 3.11+,
+# chạy launch-windows.ps1 (tự tạo venv+deps). Khác biệt ở chế độ native:
+#   ChromaDB: KHÔNG có embedded mode (src/chroma_client.py chỉ là HTTP client → localhost:8100).
+#     Native phải tự chạy server: venv RIÊNG (tránh xung đột chromadb-client) →
+#     `pip install chromadb` → `chroma run --host 127.0.0.1 --port 8100 --path .\data\chromadb`.
+#     Thiếu nó: vector tool-RAG/memory chết âm thầm, keyword fallback gánh (xem gap G-04).
+#   ntfy→browser notification hoặc ntfy.sh · LM Studio chỉ cần localhost:1234
+#   Cookbook đầy đủ cần Git for Windows (bash.exe) · vLLM/SGLang serve cần WSL2
+python -m uvicorn app:app --host 127.0.0.1 --port 7000
 
 # Test — chạy phần nhỏ nhất liên quan đến thay đổi
 python -m pytest                          # toàn bộ
