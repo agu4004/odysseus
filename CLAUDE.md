@@ -10,7 +10,7 @@ Odysseus — AI workspace tự host (FastAPI + vanilla JS): chat đa model, agen
 - **Chạm nông**: ưu tiên thêm file mới thay vì sửa file lớn của upstream (`agent_loop.py`, `static/js/app.js`...) để merge upstream không đau.
 - Logic riêng phức tạp **không viết vào Python** — viết thành service Spring Boot bên ngoài, expose qua MCP (Streamable HTTP). Phía Python chỉ là điểm cắm mỏng.
 - **Không bao giờ refactor Odysseus sang Java** (đã chốt — xem roadmap): mất sync upstream, tốn nhiều tháng, không học được gì. Nếu logic Python riêng phình to (>vài trăm dòng, có business logic) → dời sang Spring Boot qua MCP, không refactor tại chỗ.
-- Sync upstream: `git fetch upstream && git checkout dev && git merge upstream/dev`, rồi merge `dev` vào `my-features`.
+- Sync upstream: `git fetch upstream && git checkout dev && git merge upstream/dev`, rồi merge `dev` vào `my-features`. Luồng MỘT chiều: upstream → dev → my-features; **không bao giờ merge my-features vào dev**, không dùng nút "Sync fork"/"Contribute" trên GitHub (sự cố 2026-06-12: PR #1 làm bẩn dev, phải force-push dọn lại).
 
 ## Kiến trúc
 
