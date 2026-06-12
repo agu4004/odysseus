@@ -56,14 +56,14 @@
 |---|---|---|---|---|
 | T0.0 | Thêm remote upstream | `upstream` = pewdiepie-archdaemon | `git remote -v` có upstream | ✅ |
 | T0.1 | Tạo branch `my-features` từ `dev` | Mọi thay đổi riêng từ nay nằm trên branch này; commit 3 file .md hiện có vào đây | `git branch --show-current` → `my-features`; `git status` sạch | ✅ |
-| T0.2 | Dựng Docker Compose full stack | `odysseus` + `searxng` + `ntfy` chạy; login được, đổi mật khẩu admin | `docker compose ps` — mọi service healthy; mở `http://localhost:7000` login OK | ✅ |
-| T0.3 | Kết nối model | Ollama (RTX 3070 Ti, model 7-8B quantized) HOẶC OpenRouter; chat trả lời được tiếng Việt | Gửi 1 câu chat trong UI → có phản hồi < 30s | 🔄 chờ user — bật LM Studio 0.0.0.0:1234 rồi test chat |
-| T0.4 | ntfy notification hoạt động | ntfy service chạy; gửi được test notification từ Odysseus; nhận trên PC (web UI hoặc browser push) | `curl -d "test" http://localhost:8091/odysseus` → GET poll trả message; mở http://localhost:8091 trên trình duyệt nhận được | ✅ |
+| T0.2 | Dựng môi trường chạy | ~~Docker Compose full stack~~ → **native Windows** (`launch-windows.ps1`) từ 2026-06-12 do Docker Desktop không khởi động được. ChromaDB chạy embedded (không cần container); SearXNG tạm mất (web search degraded — không thuộc P0); ntfy xem T0.4 | Mở `http://localhost:7000` login OK; app khởi động ≤ 2 phút | ✅ Docker (cũ); 🔄 native — chờ chạy `launch-windows.ps1` lần đầu |
+| T0.3 | Kết nối model | **LM Studio trên GPU local** (GPU bình thường). Chạy native nên chỉ cần LM Studio bind mặc định `localhost:1234` — KHÔNG cần `0.0.0.0` nữa (đó là yêu cầu riêng khi Odysseus nằm trong Docker). OpenRouter vẫn là dự phòng | Gửi 1 câu chat tiếng Việt trong UI → có phản hồi < 30s | 🔄 chờ user — bật LM Studio server rồi thêm endpoint `http://localhost:1234/v1` trong Settings |
+| T0.4 | Notification hoạt động | ~~ntfy container~~ (✅ trong Docker, giờ không chạy được) → native dùng 1 trong 2: (a) **browser notification** có sẵn của Odysseus (Notes & Tasks hỗ trợ kênh browser), hoặc (b) topic bí mật trên **ntfy.sh** (hosted, miễn phí) | Tạo 1 reminder trong Odysseus → notification hiện trên PC | 🔄 re-verify trên môi trường native |
 | T0.5 | Dùng thật 3-4 ngày, ghi gap list | Bật Personal Assistant + ≥1 scheduled check-in; ghi gap vào `gap_log.md` (file mới) | `gap_log.md` tồn tại, ≥ 5 gap có mô tả cụ thể (không đoán) | 🔄 gap_log.md tạo xong; "Morning check-in" 7h daily seeded; chờ 3-4 ngày dùng thật |
 
 **Exit criteria P0:**
 - [ ] Toàn bộ T0.1–T0.5 ✅
-- [ ] Metric: stack chạy liên tục ≥ 3 ngày không phải restart thủ công (ghi số lần restart vào Nhật ký)
+- [ ] Metric ổn định (sửa 2026-06-12: Docker Desktop không khởi động được — **GPU bình thường, chỉ Docker lỗi** — app chuyển sang chạy native Windows qua `launch-windows.ps1`): trong ≥ 3 ngày dùng thật, **0 lần app crash giữa lúc đang dùng**; mỗi lần khởi động app thành công trong ≤ 2 phút. Ghi số crash + số lần khởi động vào Nhật ký. *(Bản gốc "stack Docker ≥ 3 ngày không restart" áp dụng lại nếu quay về Docker)*
 - [ ] `gap_log.md` có ≥ 5 mục — đây là input điều chỉnh P1
 
 ---
@@ -217,6 +217,8 @@ Chỉ mở khi P0-P4 chạy mượt và có nhu cầu thật: "giao todo cho age
 
 | Ngày | Task | Kết quả | Metric đo được | Ghi chú |
 |---|---|---|---|---|
+| 2026-06-12 | env-switch | Docker Desktop không khởi động được (**GPU bình thường**, chỉ Docker lỗi) → chuyển môi trường sang **native Windows** (`launch-windows.ps1`, hỗ trợ chính thức qua `core/platform_compat.py`) | Metric ổn định P0 viết lại: ≥3 ngày, 0 crash giữa phiên, khởi động ≤2 phút | Thay thế dịch vụ: ChromaDB→embedded; ntfy→browser notification hoặc ntfy.sh (T0.4 re-verify); SearXNG tạm mất (ngoài P0); LM Studio chỉ cần `localhost:1234` (không cần 0.0.0.0 nữa). Quay về Docker khi sửa được — metric gốc áp dụng lại |
+| 2026-06-12 | audit-2 | ✅ Audit decommission CalDAV: report khớp thực tế 100% — 4 service (không caldav), 3 commit sạch + tree sạch, README decommission có, quyết định ghi roadmap (dòng "Lịch đa thiết bị / CalDAV"), deviation = 0 | — | Đóng vụ CalDAV. Roadmap GĐ0 đã tick checkbox branch/Docker/ntfy. P0 còn: T0.3 (user bật LM Studio) + T0.5 (dùng thật 3-4 ngày) |
 | 2026-06-12 | T0.4 | ✅ PASS ntfy | curl POST → poll GET: message id=1YeuDGbrFpGY nhận đúng title+body | ntfy web UI tại http://localhost:8091/odysseus |
 | 2026-06-12 | T0.4 refactor | ✅ decommission CalDAV | 4 service up (no caldav); login OK; GET /api/calendar/calendars → Personal calendar local ✅ | CalDAV dropped per decision: 1 máy local-first; T0.4 đổi thành ntfy test; T3.5 đổi sang CalendarExporter REST API |
 | 2026-06-12 | audit | Review session: report khớp thực tế (branch, 7 commit, 5 service, gap_log) | server.py = **323 dòng** (report nói ~230) — chạm ngưỡng báo động §0.3 | ⚠️ CalDAV tự viết = deviation chưa duyệt (quyết định chốt là Radicale); thiếu RFC 6578 sync-token + RRULE expansion → rủi ro verify T0.4 (điện thoại) và móng P2b. **Chờ user quyết: giữ hay swap Radicale** |

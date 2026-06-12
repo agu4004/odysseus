@@ -30,7 +30,8 @@ Odysseus — AI workspace tự host (FastAPI + vanilla JS): chat đa model, agen
 ## Lệnh thường dùng
 
 ```bash
-# Chạy app (native; Docker là đường khuyến nghị trên Windows vì Cookbook cần tmux)
+# Chạy app native trên Windows: hỗ trợ chính thức qua core/platform_compat.py + launch-windows.ps1;
+# Cookbook đầy đủ cần Git for Windows (bash.exe); vLLM/SGLang serve cần WSL2. Docker = đường ít rủi ro hơn.
 python -m uvicorn app:app --host 127.0.0.1 --port 7000
 
 # Docker

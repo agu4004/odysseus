@@ -29,14 +29,10 @@
 **Mục tiêu: hệ thống chạy được, hiểu được hiện trạng.**
 
 - [x] Tổ chức fork: thêm remote `upstream` (đã xong), giữ branch `dev` sạch chỉ để sync
-- [ ] Tạo branch `my-features` cho mọi thay đổi riêng
-  ```bash
-  git checkout dev && git checkout -b my-features
-  ```
-- [ ] Dựng Odysseus bằng Docker Compose (Odysseus + ChromaDB + SearXNG + ntfy)
-  - Lưu ý: máy dev là **Windows** — Cookbook cần `tmux` nên Docker gần như bắt buộc thay vì chạy native
-- [ ] Kết nối model: Ollama trên RTX 3070 Ti (model 7-8B quantized) hoặc OpenRouter làm dự phòng; thử Cookbook để scan phần cứng
-- [ ] Cấu hình ntfy: gửi test notification từ PC, xác nhận service hoạt động
+- [x] Tạo branch `my-features` cho mọi thay đổi riêng (2026-06-12)
+- [x] Dựng Odysseus bằng Docker Compose — 4 service: odysseus, searxng, ntfy, chromadb (2026-06-12)
+- [ ] Kết nối model: LM Studio (RTX 3070 Ti) bật `0.0.0.0:1234` hoặc OpenRouter làm dự phòng; thử Cookbook để scan phần cứng
+- [x] Cấu hình ntfy: test notification PASS — curl POST → poll nhận message (2026-06-12)
 - [ ] Dùng thử chế độ Personal Assistant + scheduled check-in sẵn có ít nhất 3-4 ngày, **ghi lại danh sách gap thực tế** (đừng đoán gap)
 - [ ] (Tùy chọn) Chạy Graphify trên repo Odysseus làm knowledge graph cho Claude Code — chỉ là dev tool, không liên quan kho tri thức
 
