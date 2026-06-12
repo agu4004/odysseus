@@ -1,22 +1,3 @@
-# docker-compose.override.yml — thêm CalDAV server + patch Odysseus env
-# File này merge tự động với docker-compose.yml khi chạy `docker compose up`
-
-services:
-  caldav:
-    build: ./caldav_service
-    ports:
-      - "127.0.0.1:5232:5232"
-    volumes:
-      - caldav-data:/data/calendars
-    environment:
-      - CALDAV_USER=${CALDAV_USER:-admin}
-      - CALDAV_PASSWORD=${CALDAV_PASSWORD:-Odysseus2026!}
-    restart: unless-stopped
-
-  # Cho phép Odysseus kết nối CalDAV trên Docker private network
-  odysseus:
-    environment:
-      - ODYSSEUS_ALLOW_PRIVATE_CALDAV=1
-
-volumes:
-  caldav-data:
+# docker-compose.override.yml — local overrides (không commit secret vào đây)
+# Hiện tại không có override nào cần thiết.
+# CalDAV service đã decommission 2026-06-12 — xem caldav_service/README.md
