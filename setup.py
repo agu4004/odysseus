@@ -12,6 +12,26 @@ import subprocess
 import sys
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Load .env before anything else so ODYSSEUS_ADMIN_USER / ODYSSEUS_ADMIN_PASSWORD
+# are available to os.getenv() without requiring the caller to pre-export them.
+_env_path = os.path.join(BASE_DIR, ".env")
+if os.path.exists(_env_path):
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_path, override=False)
+    except ImportError:
+        # dotenv not installed — fall back to manual parse (no substitution)
+        with open(_env_path, encoding="utf-8") as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if not _line or _line.startswith("#") or "=" not in _line:
+                    continue
+                _k, _, _v = _line.partition("=")
+                _k = _k.strip()
+                _v = _v.strip().strip('"').strip("'")
+                if _k and _k not in os.environ:
+                    os.environ[_k] = _v
 sys.path.insert(0, BASE_DIR)
 from src.constants import (
     DATA_DIR, AUTH_FILE, UPLOAD_DIR, PERSONAL_DIR, PERSONAL_UPLOADS_DIR,

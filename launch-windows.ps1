@@ -127,6 +127,21 @@ Write-Step "Installing dependencies (first run can take a few minutes)"
 & $venvPy -m pip install -r requirements.txt
 if ($LASTEXITCODE -ne 0) { Fail "Dependency install failed. Scroll up for the pip error." }
 
+# 4. Load .env into the current process so setup.py inherits the variables
+$envFile = Join-Path $PSScriptRoot ".env"
+if (Test-Path $envFile) {
+    Get-Content $envFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#") -and $line -match "^([^=]+)=(.*)$") {
+            $k = $Matches[1].Trim()
+            $v = $Matches[2].Trim().Trim('"').Trim("'")
+            if ($k -and -not [System.Environment]::GetEnvironmentVariable($k)) {
+                [System.Environment]::SetEnvironmentVariable($k, $v, "Process")
+            }
+        }
+    }
+}
+
 # 4. First-time setup (creates data dirs, DB, .env, admin user)
 Write-Step "Running first-time setup"
 & $venvPy setup.py
