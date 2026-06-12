@@ -35,7 +35,7 @@
 
 | Phase | Tên | Trạng thái | Tiến độ | Cập nhật |
 |---|---|---|---|---|
-| P0 | Nền tảng Odysseus | 🔄 | 3/6 (T0.0–T0.2 xong) | 2026-06-12 |
+| P0 | Nền tảng Odysseus | 🔄 | 3/6 ✅ + T0.3/T0.4/T0.5 chờ user | 2026-06-12 |
 | P1 | Trợ lý Việt hóa | ⬜ | 0/4 | — |
 | P2 | Second Brain core (Sprint A-C) | ⬜ | 0/12 | — |
 | P2b | Planner + Telegram (Sprint D-E) | ⬜ | 0/9 | — |
@@ -59,7 +59,7 @@
 | T0.2 | Dựng Docker Compose full stack | `odysseus` + `searxng` + `ntfy` chạy; login được, đổi mật khẩu admin | `docker compose ps` — mọi service healthy; mở `http://localhost:7000` login OK | ✅ |
 | T0.3 | Kết nối model | Ollama (RTX 3070 Ti, model 7-8B quantized) HOẶC OpenRouter; chat trả lời được tiếng Việt | Gửi 1 câu chat trong UI → có phản hồi < 30s | ⏭️ test sau — LM Studio cần bật 0.0.0.0:1234 |
 | T0.4 | CalDAV + ntfy | Radicale (hoặc Google Cal) sync 2 chiều; ntfy app trên điện thoại nhận push | Tạo event trong Odysseus → hiện trên điện thoại; gửi test notification → điện thoại nhận | 🔄 CalDAV server ✅; cần user kết nối trong UI + ntfy phone test sau |
-| T0.5 | Dùng thật 3-4 ngày, ghi gap list | Bật Personal Assistant + ≥1 scheduled check-in; ghi gap vào `gap_log.md` (file mới) | `gap_log.md` tồn tại, ≥ 5 gap có mô tả cụ thể (không đoán) | ⬜ |
+| T0.5 | Dùng thật 3-4 ngày, ghi gap list | Bật Personal Assistant + ≥1 scheduled check-in; ghi gap vào `gap_log.md` (file mới) | `gap_log.md` tồn tại, ≥ 5 gap có mô tả cụ thể (không đoán) | 🔄 gap_log.md tạo xong; "Morning check-in" 7h daily seeded; chờ 3-4 ngày dùng thật |
 
 **Exit criteria P0:**
 - [ ] Toàn bộ T0.1–T0.5 ✅
@@ -217,6 +217,7 @@ Chỉ mở khi P0-P4 chạy mượt và có nhu cầu thật: "giao todo cho age
 
 | Ngày | Task | Kết quả | Metric đo được | Ghi chú |
 |---|---|---|---|---|
+| 2026-06-12 | T0.5 | 🔄 setup xong | gap_log.md tạo; Morning check-in 7h daily tạo qua API (id: eb6adaa0) | Chờ 3-4 ngày dùng thật để điền ≥5 gap |
 | 2026-06-12 | T0.4 | 🔄 CalDAV server built & verified | PUT+REPORT+discovery chain pass; 5 services up | Tự viết RFC 4791 subset (~230 dòng Starlette); ntfy phone ⏭️ test sau |
 | 2026-06-12 | T0.2 | ✅ PASS | docker compose ps: 4 service up (odysseus, searxng healthy, ntfy, chromadb); HTTP 302 login redirect tại :7000 | LM Studio chưa bật → 0 model, bình thường; FastEmbed WARNING do FASTEMBED_CACHE_PATH rỗng |
 | 2026-06-12 | T0.1 | ✅ PASS | branch=my-features, git status sạch, 4 file .md committed (df98d7d) | roadmap_assistance.md cũng có nên commit 4 file, không phải 3 |
