@@ -35,6 +35,7 @@ from src.agent_tools import (
     ToolBlock,
     MAX_AGENT_ROUNDS,
 )
+from src.vietnamese_intent import classify_vietnamese_intent
 
 logger = logging.getLogger(__name__)
 
@@ -797,6 +798,9 @@ def _classify_agent_request(messages: List[Dict], last_user: str) -> Dict[str, o
         domains.add("files")
     if has(r"\b(endpoint|api token|mcp|webhook|preference|configure|config|setting)\b"):
         domains.add("settings")
+
+    # Vietnamese-language domain detection (gap G-02: English-only classifier)
+    domains.update(classify_vietnamese_intent(q))
 
     low_signal = not continuation and not domains
     return {

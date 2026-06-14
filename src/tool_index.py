@@ -344,12 +344,18 @@ class ToolIndex:
         # request (e.g. "visit <url> and tell me the title"), force-including the
         # whole email toolset and crowding out the relevant tools — the model then
         # believed it had only email tools and refused web/other tasks (#1707).
-        frozenset({"email", "emails", "mail", "mails", "gmail", "googlemail", "message", "messages", "send", "reply", "replies", "inbox", "unread"}):
+        frozenset({"email", "emails", "mail", "mails", "gmail", "googlemail", "message", "messages", "send", "reply", "replies", "inbox", "unread",
+                   "hộp thư", "hòm thư", "gửi thư", "đọc thư"}):
             {"list_email_accounts", "list_emails", "read_email", "send_email", "reply_to_email", "bulk_email", "delete_email", "archive_email", "mark_email_read", "resolve_contact", "ui_control"},
-        frozenset({"calendar", "event", "meeting", "schedule", "appointment"}):
+        frozenset({"calendar", "event", "meeting", "schedule", "appointment",
+                   "lịch", "sự kiện", "cuộc hẹn", "cuộc họp", "hẹn gặp"}):
             {"manage_calendar"},
-        frozenset({"note", "todo", "reminder", "remind", "checklist", "remember to"}):
+        frozenset({"note", "todo", "reminder", "remind", "checklist", "remember to",
+                   "ghi chú", "nhắc", "nhắc nhở", "việc cần làm", "danh sách việc"}):
             {"manage_notes"},
+        # Vietnamese real-time search intent (gap G-04: keyword fallback must cover vi)
+        frozenset({"tìm kiếm", "tra cứu", "giá vàng", "giá xăng", "tỷ giá", "thời tiết", "tin tức", "mới nhất"}):
+            {"web_search", "web_fetch"},
         # Chat/session management. "rename" alone maps to documents below, so a
         # request like "rename the last 12 sessions/chats" needs these session
         # keywords to surface the right tools (NOT app_api — /api/sessions is
