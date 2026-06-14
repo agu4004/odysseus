@@ -18,7 +18,7 @@ Odysseus — AI workspace tự host (FastAPI + vanilla JS): chat đa model, agen
 - [routes/](routes/) — ~50 module HTTP API theo domain (chat, email, calendar, cookbook, mcp, memory...). Helper dùng chung của domain nằm cạnh (`*_helpers.py`).
 - [src/](src/) — logic lõi:
   - Agent: [agent_loop.py](src/agent_loop.py), tool schema ở [tool_schemas.py](src/tool_schemas.py), implementation ở [tool_implementations.py](src/tool_implementations.py) + [agent_tools/](src/agent_tools/).
-  - **Tool selection bằng RAG top-K** ([tool_index.py](src/tool_index.py)) — tool (kể cả MCP tool) chỉ "hiện ra" với agent nếu description khớp ngữ nghĩa message. Description tool mới phải giàu từ khóa, song ngữ Việt–Anh.
+  - **Tool selection 2 tầng**: (1) `_classify_agent_request` trong [agent_loop.py](src/agent_loop.py) phân loại domain bằng **regex** — message `low_signal` (không khớp domain nào) thì **bỏ qua retrieval**, agent chỉ còn `ALWAYS_AVAILABLE`; (2) qua được cổng mới tới **RAG top-K** ([tool_index.py](src/tool_index.py)) chọn tool theo embedding. ⚠️ Cả 2 tầng đều thiên tiếng Anh — câu thuần Việt rớt ngay tầng 1 (gap G-02). Description tool mới phải giàu từ khóa, song ngữ Việt–Anh.
   - MCP client: [mcp_manager.py](src/mcp_manager.py) — hỗ trợ stdio / SSE / Streamable HTTP (+OAuth).
   - **Memory provider seam**: [memory_provider.py](src/memory_provider.py) — interface chính thức để cắm kho memory ngoài; đăng ký registry tại app_initializer.py (~dòng 77). Đây là điểm cắm Second Brain.
   - Scheduler: [task_scheduler.py](src/task_scheduler.py) — cron task, IANA timezone per-task, đẩy ntfy.
@@ -57,6 +57,8 @@ Test taxonomy khai báo trong [pyproject.toml](pyproject.toml); chuẩn viết t
 ## Quy ước & lưu ý
 
 - Máy dev là **Windows 11** (PowerShell); codebase có nhiều workaround Windows (MIME types, HF symlinks, BOM trong `.env`) — đừng xóa khi refactor.
+- Model dev hiện tại: **qwen3-4b-2507 qua LM Studio** — nhỏ, yếu tool-calling khi gặp request đôi (G-07), không tự dùng memory/convert tz với câu tiếng Việt; cân nhắc ≥8B. Phát hiện thực địa P0 nằm ở [gap_log.md](gap_log.md) (G-01..G-08) — là đặc tả định hướng P1.
+- **Timezone là điểm đau 2 đường**: ghi (`parse_due_for_user` ở calendar_routes.py — G-03) và đọc (formatter `do_manage_calendar` ở tool_implementations.py:1663 trả UTC thô — G-06). Chuẩn `Asia/Ho_Chi_Minh`.
 - Người dùng làm việc bằng **tiếng Việt**; tính năng ngôn ngữ (parse ngày giờ, prompt) phải test với mẫu câu Việt ("mai", "mốt", "tuần sau", "7h tối thứ 6"). Timezone chuẩn: `Asia/Ho_Chi_Minh`.
 - Parse thời gian tự nhiên của calendar nằm ở `parse_due_for_user` trong [routes/calendar_routes.py](routes/calendar_routes.py) (heuristic + dateutil, chưa hiểu tiếng Việt).
 - Memory 2 tầng: memory nội bộ (`manage_memory`, ChromaDB) = ngữ cảnh ngắn hạn; Second Brain (qua MCP/provider) = tri thức dài hạn có duyệt. Đừng trộn.

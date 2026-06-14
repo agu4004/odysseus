@@ -24,16 +24,16 @@
 
 ---
 
-## Giai đoạn 0 — Nền tảng (tuần 1)
+## Giai đoạn 0 — Nền tảng (tuần 1) — ✅ ĐÓNG 2026-06-15
 
 **Mục tiêu: hệ thống chạy được, hiểu được hiện trạng.**
 
 - [x] Tổ chức fork: thêm remote `upstream` (đã xong), giữ branch `dev` sạch chỉ để sync
 - [x] Tạo branch `my-features` cho mọi thay đổi riêng (2026-06-12)
 - [x] Dựng Odysseus bằng Docker Compose — 4 service: odysseus, searxng, ntfy, chromadb (2026-06-12)
-- [ ] Kết nối model: LM Studio (RTX 3070 Ti) bật `0.0.0.0:1234` hoặc OpenRouter làm dự phòng; thử Cookbook để scan phần cứng
+- [x] Kết nối model: LM Studio (RTX 3070 Ti) + qwen3-4b-2507 — chat Việt phản hồi ~0.65s (2026-06-12)
 - [x] Cấu hình ntfy: test notification PASS — curl POST → poll nhận message (2026-06-12)
-- [ ] Dùng thử chế độ Personal Assistant + scheduled check-in sẵn có ít nhất 3-4 ngày, **ghi lại danh sách gap thực tế** (đừng đoán gap)
+- [x] Dùng thật 3 ngày, 0 crash; **8 gap thực tế** (G-01..G-08) ghi trong [gap_log.md](gap_log.md), chẩn đoán đầy đủ tới dòng code (2026-06-15)
 - [ ] (Tùy chọn) Chạy Graphify trên repo Odysseus làm knowledge graph cho Claude Code — chỉ là dev tool, không liên quan kho tri thức
 
 ## Giai đoạn 1 — Trợ lý notes + lịch cơ bản (tuần 2-3)

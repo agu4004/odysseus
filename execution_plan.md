@@ -35,15 +35,15 @@
 
 | Phase | Tên | Trạng thái | Tiến độ | Cập nhật |
 |---|---|---|---|---|
-| P0 | Nền tảng Odysseus | 🔄 | 3/6 ✅; T0.3/T0.4/T0.5 🔄 chờ user | 2026-06-12 |
-| P1 | Trợ lý Việt hóa | ⬜ | 0/4 | — |
+| P0 | Nền tảng Odysseus | ✅ | 6/6 — đóng 2026-06-15 | 2026-06-15 |
+| P1 | Trợ lý Việt hóa | 🔄 | 0/5 — phase hiện tại | 2026-06-15 |
 | P2 | Second Brain core (Sprint A-C) | ⬜ | 0/12 | — |
 | P2b | Planner + Telegram (Sprint D-E) | ⬜ | 0/9 | — |
 | P3 | Chưng cất tri thức (Sprint F-G) | ⬜ | 0/8 | — |
 | P4 | Context engineering | ⬜ | 0/4 | — |
 | P5 | Backlog | — | — | — |
 
-**Phase hiện tại: P0.**
+**Phase hiện tại: P1.** (P0 đóng 2026-06-15)
 
 ---
 
@@ -59,12 +59,12 @@
 | T0.2 | Dựng môi trường chạy | **Docker Compose là môi trường chính** (user xác nhận 2026-06-12 máy chạy được Docker). Native Windows (`launch-windows.ps1`, cần Python 3.11+) giữ làm **dự phòng chính thức** khi Docker trục trặc — khác biệt: ChromaDB **phải tự chạy server CLI** (không có embedded — xem G-04), ntfy→browser/ntfy.sh, SearXNG tạm mất | Docker: `docker compose ps` healthy + login `localhost:7000`. Native: login OK + khởi động ≤ 2 phút + log `ChromaDB connected` | ✅ Docker |
 | T0.3 | Kết nối model | **LM Studio trên GPU local**. Docker (chính): LM Studio bind `0.0.0.0:1234`, endpoint trong Settings = `http://host.docker.internal:1234/v1`. Native (dự phòng): bind mặc định, endpoint `http://localhost:1234/v1`. OpenRouter vẫn là dự phòng cuối | Gửi 1 câu chat tiếng Việt trong UI → có phản hồi < 30s | ✅ (native + qwen3-4b: log `LLM async call succeeded in 0.65s`, chat Việt chạy ổn suốt tối 12/06) |
 | T0.4 | Notification hoạt động | Docker (chính): **ntfy container** — đã verify. Native (dự phòng): browser notification của Odysseus hoặc topic bí mật trên ntfy.sh | Docker: curl POST → poll nhận message (đã pass). Native: tạo 1 reminder → notification hiện trên PC | ✅ (Docker) |
-| T0.5 | Dùng thật 3-4 ngày, ghi gap list | Bật Personal Assistant + ≥1 scheduled check-in; ghi gap vào `gap_log.md` (file mới) | `gap_log.md` tồn tại, ≥ 5 gap có mô tả cụ thể (không đoán) | 🔄 gap_log.md tạo xong; "Morning check-in" 7h daily seeded; chờ 3-4 ngày dùng thật |
+| T0.5 | Dùng thật 3-4 ngày, ghi gap list | Bật Personal Assistant + ≥1 scheduled check-in; ghi gap vào `gap_log.md` (file mới) | `gap_log.md` tồn tại, ≥ 5 gap có mô tả cụ thể (không đoán) | ✅ **8 gap** (G-01..G-08) chẩn đoán đầy đủ; 3 ngày dùng thật, 0 crash |
 
-**Exit criteria P0:**
-- [ ] Toàn bộ T0.1–T0.5 ✅
-- [ ] Metric ổn định — theo môi trường đang chạy: **Docker (chính)**: stack ≥ 3 ngày không restart thủ công. **Native (dự phòng)**: ≥ 3 ngày dùng thật, 0 crash giữa lúc dùng, khởi động ≤ 2 phút. Ghi số liệu vào Nhật ký
-- [ ] `gap_log.md` có ≥ 5 mục — đây là input điều chỉnh P1
+**Exit criteria P0:** ✅ ĐẠT (2026-06-15)
+- [x] Toàn bộ T0.1–T0.5 ✅
+- [x] Metric ổn định — 3 ngày dùng thật, **0 crash giữa lúc dùng** (user xác nhận máy treo đủ 3 ngày)
+- [x] `gap_log.md` có ≥ 5 mục — đạt **8 gap**, vượt mốc; là input điều chỉnh P1
 
 ---
 
@@ -218,9 +218,11 @@ Chỉ mở khi P0-P4 chạy mượt và có nhu cầu thật: "giao todo cho age
 
 | Ngày | Task | Kết quả | Metric đo được | Ghi chú |
 |---|---|---|---|---|
+| 2026-06-15 | **P0 ĐÓNG** | ✅ Exit criteria đạt đủ: T0.1-T0.5 done, 3 ngày 0 crash (user xác nhận), gap_log 8 mục. Phase hiện tại → P1 | 8 gap chẩn đoán; test gate sync-1 xanh (3262 pass) | Gap phân nhóm: cổng Việt (G-02,G-05→T1.5); timezone ghi+đọc (G-03,G-06→T1.2); năng lực 4B (G-01,G-07→8B+persona T1.4); validate thiết kế (G-08→Second Brain P3, KHÔNG vá Python). Thứ tự P1: T1.5→T1.2→T1.1→T1.4 |
 | 2026-06-12 | T0.3 + chroma-bug | ✅ T0.3 PASS (LM Studio native, LLM call 0.65-0.7s). ⚠️ Log lộ bug môi trường: `ToolIndex init failed: ChromaDB is not reachable at localhost:8100` — máy native cấu hình ChromaDB kiểu Docker → **vector tool-RAG chết, keyword fallback đang gánh toàn bộ** | Bằng chứng G-02 từng dòng log: `low_signal=False domains=['notes_calendar_tasks']` → `Keyword fallback selected: ['manage_calendar']` → `tools_sent=6` → `exit_code=0` | ĐÍNH CHÍNH: không có embedded mode — `chroma_client.py` chỉ HTTP, default 8100 nằm trong code. Fix native: chạy `chroma run --port 8100` từ venv riêng (chi tiết G-04). **Hệ quả cho T1.5**: phải Việt hóa cả domain regex LẪN `_KEYWORD_HINTS` (vì tầng vector có thể không chạy). G-03 khoanh vùng: event lưu thật 14/06 14:00-15:00, tool exit 0 → lỗi ở giá trị due trong args (nghi dateutil vớ "14" trong "14h" làm ngày-của-tháng) |
 | 2026-06-12 | env-note | User xác nhận: **máy chạy được Docker** → Docker trở lại là môi trường chính; native Windows giữ làm guideline dự phòng chính thức (đã ghi vào CLAUDE.md). T0.2/T0.3/T0.4 + metric P0 viết lại theo dạng kép Docker-chính/native-dự-phòng | — | Python 3.11+ vẫn nên cài để chạy test suite ngoài container |
-| 2026-06-12 | sync-1 | ✅ Sync upstream lần đầu: dọn `dev` bẩn (PR #1 merge nhầm my-features vào dev → force-push về upstream 9d7a3d6), merge 31 commit upstream vào my-features **0 conflict** | Upstream đụng `launch-windows.ps1` + `platform_compat.py` (may là sync trước khi chạy native); KHÔNG đụng `calendar_routes.py` | ⛔ Cổng test `pytest -m "not slow"` chưa chạy được: **máy chưa cài Python** (trước giờ chạy Docker). User cài Python 3.11+ (python.org, tick "Add python.exe to PATH") → `launch-windows.ps1` tự lo venv+deps → chạy test gate để đóng sync-1 |
+| 2026-06-13 | sync-1 ✅ ĐÓNG | Cổng test PASS: `3262 passed, 1 skipped, 5 deselected` trong 3m36s, **0 fail**. 57 warning đều là DeprecationWarning (`utcnow`, pydantic `.dict`) trong code upstream — không phải lỗi | Fast-lane `pytest -m "not slow"` xanh trên code đã sync | Chạy qua Docker: `docker compose build odysseus` → `docker compose run --rm --no-deps -v "<host>:/app" -w /app --entrypoint python odysseus -m pytest -m "not slow"`. (Image production loại `tests/` qua .dockerignore → phải mount host code; deps nằm sẵn trong site-packages của image). 31 commit upstream KHÔNG làm vỡ gì → an toàn bắt đầu code P1 |
+| 2026-06-12 | sync-1 | ✅ Sync upstream lần đầu: dọn `dev` bẩn (PR #1 merge nhầm my-features vào dev → force-push về upstream 9d7a3d6), merge 31 commit upstream vào my-features **0 conflict** | Upstream đụng `launch-windows.ps1` + `platform_compat.py` (may là sync trước khi chạy native); KHÔNG đụng `calendar_routes.py` | Cổng test đã chạy 2026-06-13 (xem entry trên) — đóng |
 | 2026-06-12 | env-switch | Docker Desktop không khởi động được (**GPU bình thường**, chỉ Docker lỗi) → chuyển môi trường sang **native Windows** (`launch-windows.ps1`, hỗ trợ chính thức qua `core/platform_compat.py`) | Metric ổn định P0 viết lại: ≥3 ngày, 0 crash giữa phiên, khởi động ≤2 phút | Thay thế dịch vụ: ChromaDB→chạy server CLI riêng (KHÔNG có embedded — đính chính ở entry chroma-bug); ntfy→browser notification hoặc ntfy.sh (T0.4 re-verify); SearXNG tạm mất (ngoài P0); LM Studio chỉ cần `localhost:1234` (không cần 0.0.0.0 nữa). Quay về Docker khi sửa được — metric gốc áp dụng lại |
 | 2026-06-12 | audit-2 | ✅ Audit decommission CalDAV: report khớp thực tế 100% — 4 service (không caldav), 3 commit sạch + tree sạch, README decommission có, quyết định ghi roadmap (dòng "Lịch đa thiết bị / CalDAV"), deviation = 0 | — | Đóng vụ CalDAV. Roadmap GĐ0 đã tick checkbox branch/Docker/ntfy. P0 còn: T0.3 (user bật LM Studio) + T0.5 (dùng thật 3-4 ngày) |
 | 2026-06-12 | T0.4 | ✅ PASS ntfy | curl POST → poll GET: message id=1YeuDGbrFpGY nhận đúng title+body | ntfy web UI tại http://localhost:8091/odysseus |
